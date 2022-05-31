@@ -1,0 +1,282 @@
+---
+title: "Exploratory Data Analysis - Retail Data"
+author: "Safira Widya Putri"
+date: "2022-05-18"
+output:
+  html_document:
+    theme: darkly
+    highlight: pygments
+    df_print: paged
+    toc: true
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<style>
+body {
+text-align: justify}
+</style>
+
+## Introduction
+
+This data contains of sales record that occurred in 2014-2017 from a retail company. We will explore the retail data and provide business recommendations to improve its growth and profitability.
+
+## Set Up Library
+
+First, we must set up the library that we needed.
+
+```{r message=FALSE}
+library(lubridate)
+library(dplyr)
+```
+
+
+## Data Preparation
+
+### Input Data
+
+Input our data and put it into ‘retail’ object. We use `stringsAsFactors = True`, so all columns with character data type will be converted into factors.
+
+```{r}
+retail <- read.csv("retail.csv", stringsAsFactors = T)
+```
+
+Overview our data:
+
+```{r}
+head(retail)
+```
+
+```{r}
+tail(retail)
+```
+
+### Data Structure
+
+Check the number of columns and rows.
+
+```{r}
+dim(retail)
+```
+Retail data contains 9,994 rows and 15 columns.
+
+View all columns and the data types.
+
+```{r}
+glimpse(retail)
+```
+Some of data types are not in the correct type. Later we need to convert into correct type.
+
+### Pre-processing Data
+
+Check the missing value.
+
+```{r}
+colSums(is.na(retail))
+```
+
+No missing value found!
+
+Next, we must convert data types into correct type. The data type of **Order.Date** and **Ship.Date** should be Date, then we will delete **Row.ID** which is not needed.
+
+```{r}
+retail <- retail %>% 
+  select(-c(Row.ID)) %>% 
+  mutate(Order.Date = mdy(Order.Date),
+         Ship.Date = mdy(Ship.Date))
+```
+
+Let's take a look again!
+
+```{r}
+glimpse(retail)
+```
+
+Now the data type of all columns are correct. We can go on to the next step.
+
+## Data Explanation
+
+Summary of all columns.
+
+```{r}
+summary(retail)
+```
+
+Summary :
+
+1. The transaction occured in January 2014 to December 2017.
+2. Standart Class was the most used for shipping mode, followed by Second Class, First Class, and Same Day.
+3. Most buyers coming from Consumer Segment, followed by Corporate Segment and Home Office Segment.
+4. Office Supplies was the most purchased category, followed by Furniture and Technology.
+5. Based on Sub category, Binders was the most purchased.
+6. Sales average is 229.858, maximum Sales is 22,638.480, and minimum Sales is 0.444.
+7. Quantity average is 3.79, maximum Quantity is 14, and minimum Quantity is 1.
+8. Max amount of discount is 80%, meanwhile the average number of discount is 15.62%.
+9. Profit average is 28.657, maximum Profit is 8,399.976, and minimum Profit is -6,599.978.
+
+It can be seen from the summary that Sales and Profit data are quite spread out, so we can check more detail with a boxplot.
+
+```{r}
+boxplot(retail$Sales, retail$Profit, names = c("Sales", "Profit"))
+```
+
+There are quite a lot outliers in Sales at the top, while Profit has outliers in both of the top and bottom of the data.
+
+## Business Case
+
+1. How much sales does the company make?
+
+```{r}
+sum(retail$Sales)
+```
+The amount of sales that the company make is 2,297,201.
+
+2. How much profit does the company gain?
+```{r}
+sum(retail$Profit)
+```
+The amount of profit that the company gains is 286,397.
+
+3. How much the total quantity sold?
+
+```{r}
+sum(retail$Quantity)
+```
+The company sold 37,873 items.
+
+4. When is the transaction with the highest sales?
+
+```{r message=FALSE}
+retail %>% 
+  select(Order.Date, Sales) %>% 
+  arrange(-Sales) %>% 
+  top_n(1)
+```
+The highest sales occured on March 18th, 2014 with total of sales is 22,638.48.
+
+5. When is the transaction with the highest profit?
+
+```{r message=FALSE}
+retail %>% 
+  select(Order.Date, Profit) %>% 
+  arrange(-Profit) %>% 
+  top_n(1)
+```
+The highest profit occured on October 2nd, 2016 with total of profit is 8,399.976.
+
+
+6. When is the transaction with the highest quantity?
+
+```{r message=FALSE}
+retail %>% 
+  select(Order.Date, Quantity) %>% 
+  arrange(-Quantity) %>% 
+  top_n(1)
+```
+There are 29 transactions with the highest quantity (14 items) in 2014-2017.
+
+7. How are sales, profit, and quantity in each segment? 
+
+```{r}
+retail %>% 
+  select(Sales, Profit, Quantity, Segment) %>% 
+  group_by(Segment) %>% 
+  summarise(Total_Sales = sum(Sales), Total_Profit = sum(Profit), Total_Quantity = sum(Quantity)) %>% 
+  arrange(-Total_Sales)
+  
+```
+
+The order from the highest to lowest number of sales, profit, and quantity based on Segment are Consumer Segment, followed by Corporate Segment, then Home Office Segments.
+
+8. How are sales, profit, and quantity in each Ship Mode?
+
+```{r}
+retail %>% 
+  select(Sales, Profit, Quantity, Ship.Mode) %>% 
+  group_by(Ship.Mode) %>% 
+  summarise(Total_Sales = sum(Sales), Total_Profit = sum(Profit), Total_Quantity = sum(Quantity)) %>% 
+  arrange(-Total_Sales)
+```
+
+The order from the highest to lowest number of sales, profit, and quantity based on Ship Mode are Standard Class, followed by Second Class, Frist Class, and Same Day. Standard class has 60.2% share of all Ship Mode.
+
+
+9. How are sales, profit, and quantity in each Category?
+
+```{r}
+retail %>% 
+  select(Sales, Profit, Quantity, Category) %>% 
+  group_by(Category) %>% 
+  summarise(Total_Sales = sum(Sales), Total_Profit = sum(Profit), Total_Quantity = sum(Quantity)) %>% 
+  arrange(-Total_Sales)
+  
+```
+* Technology has the highest Sales and Profit, but the lowest Quantity compared to others.
+* Furniture has the second highest Sales, but the lowest Profit compared to others.
+* Office supplies has the lowest Sales, but the Profit is quite high (second place), and the Quantity is the highest compared to others.
+
+Let's explore more about Sub Category!
+
+```{r message=FALSE}
+retail %>% 
+  select(Sales, Profit, Quantity, Category, Sub.Category) %>% 
+  group_by(Category, Sub.Category) %>% 
+  summarise(Total_Sales = sum(Sales), Total_Profit = sum(Profit), Total_Quantity = sum(Quantity)) %>% 
+  arrange(-Total_Profit)
+  
+```
+
+Its show that Technology with Sub Category: Copiers; Phones; and Accessories have the highest Profit. Meanwhile Office Supplies - Supplies, Furniture - Bookcases, and Furniture - Tables have minus Profit or gain loss.
+
+
+10. How about the amount of discounts? Is that the causes of minus profit in some sub categories?
+
+Let's see how the discount spread.
+
+```{r}
+boxplot(retail$Discount)
+```
+
+There are 3 outliers at the top. We want to know how much amount of discount in the top 3 biggest discount.
+
+```{r}
+head(sort(unique(retail$Discount),decreasing = T),3)
+```
+Quite surprising, the discount are 60%, 70%, and 80%. Subset the data and put it into ‘retail_discount’ object, so we can explore more about it.
+
+```{r}
+retail_discount <- retail %>% 
+  filter(Discount == 0.8 | Discount == 0.7 | Discount == 0.6)
+nrow(retail_discount)
+```
+There are 856 transactions recorded with very big discount.
+
+```{r message=FALSE}
+retail_discount %>% 
+  select(Sales, Profit, Category, Sub.Category) %>% 
+  group_by(Category, Sub.Category) %>%
+  summarise(Total_Sales = sum(Sales), Total_Profit = sum(Profit))  %>% 
+  arrange(-Total_Sales)
+```
+* Group by category dan sub category to all transactions that have big discount. It shows that all categories have minus profit or gain loss.
+
+* Based on previous question, we know that Office Supplies - Supplies, Furniture - Bookcases, and Furniture -  Tables have minus profit. It turns out that Furniture - Bookcases is one of categories that gives big discount.
+
+* The Office Supplies - Supplies and Furniture - Table never give big discount.
+
+* Meanwhile for other categories that give big discount, although the profit is minus, it still gains profit after being calculated with all items in the same category.
+
+
+## Business Recommendation
+
+1. Based on our exploratory above, we still have an opportunity to improve the market share from Corporate segment and Home Office segment.
+2. We must maintain the quality of the Standard Class shipping mode because most buyers using that method and it also has the highest of total sales, profit, and quantity.
+3. We could improve sales from Technology because the biggest profit comes from it even though the amount of quantity is the lowest compare to others.
+4. Office Supplies has the highest sold quantity, therefore we have to make sure the stock items always available.
+5. Create new strategy to sell Office Supplies - Supplies, Furniture – Bookcases, and Furniture - Tables that gain loss profit. Especially for Furniture - Bookcases, the discount given was very big (more than 50%). We must consider again to give a proper discount, so later can gain profit.
